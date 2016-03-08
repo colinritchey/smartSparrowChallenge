@@ -1,0 +1,96 @@
+extends layout
+
+append styles
+  // Custom styles for this template
+  link(href='../public/stylesheet/style.css', rel='stylesheet')
+
+block content
+  div(class="row")
+    div(class="col-xs-12 center")
+      img(src="/images/star-small.png" )
+      canvas(id="myCanvas" width="300" height="300" style="border: 0px solid #000000; opacity: 0")
+  div(class="row" style="margin-top:300px;")
+    label(for="velocity") Velocity (km/s):
+    input(id="velocity" name="velocity" type="range" min="-100" max="100" value="0")
+    input(id="velocityOutput" for="velocity" name="level")
+
+  script.
+    var pointValue = $('#velocity').get(0).value;
+    var c = document.getElementById('myCanvas');
+    var ctx = c.getContext('2d');
+    var gradient;
+    var reg = /^-?[0-9]\d*(\.\d+)?$/;
+    var x = 148,
+    y = 146,
+    innerRadius = 100,
+    outerRadius = 20,
+    radius = 100;
+
+    ctx.beginPath();
+    ctx.arc(x,y,radius,0,2*Math.PI);
+    ctx.strokeStyle = 'rgba(255,255,255,0)';
+    ctx.stroke();
+    var alphaValue = pointValue/100;
+
+    function repositionTooltip( e, ui ){
+      $("#myCanvas").css("opacity",alphaValue);
+    }
+    
+    function cirlceGradiant(color){
+      gradient = ctx.createRadialGradient(x, y, innerRadius, x, y, outerRadius);
+        gradient.addColorStop(0, 'rgba(255,255,255,0)');
+        gradient.addColorStop(1, color);
+        ctx.fillStyle= gradient;
+        ctx.fill();
+    }
+
+    function stepFunction (step, min, max, power){
+      var range = max - min,
+        coeff = Math.pow((step -min)/range, power),
+        newStep = min + coeff*range;
+      return newStep;
+    }
+
+    function defineColor (value){
+      if(value < 0){
+        cirlceGradiant('blue');
+      } else {
+        cirlceGradiant('red');
+      }
+    }
+
+    $(function() {
+      $( '#velocity' ).on({
+        change:function(e, ui) { 
+          pointValue = $('#velocityOutput').get(0).value;
+          alphaValue = Math.abs(pointValue/100)/2;
+          $('#myCanvas').css("opacity",alphaValue);
+          defineColor(pointValue);
+        }
+      });
+    });
+
+    $('#velocity').on('input', function(e){
+      var target = e.target,
+        step = parseInt(target.value),
+        min = parseInt(target.min),
+        max = parseInt(target.max);          
+      $('#velocityOutput').val(stepFunction(step, min, max,2));
+    });
+
+    $('#velocityOutput').on('keyup', function() {
+      var pos = $(this).val();
+      
+      if(Math.abs(pos) > 100 || !(reg.test(pos))){ 
+        alert('Please pick a number between -100 and 100');
+        return;
+      };
+      
+      var newRangeStep = stepFunction(pos, -100, 100, (1/2));
+      $('#velocity').val(newRangeStep);
+
+      alphaValue = Math.abs(newRangeStep/100)/2;
+      $('#myCanvas').css('opacity',alphaValue);
+
+      defineColor(newRangeStep);
+    });
